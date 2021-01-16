@@ -1,82 +1,58 @@
 'use strict';
 const userNameInput = document.getElementById('user-name');
-const assesmentButton = document.getElementById('assesment');
+const assessmentButton = document.getElementById('assessment');
 const resultDivided = document.getElementById('result-area');
 const tweetDivided = document.getElementById('tweet-area');
 
 /**
- * 指定した要素の子どもを全て削除する
+ * 指定した要素の子どもを全て除去する
  * @param {HTMLElement} element HTMLの要素
  */
-function removeAllChildren(element){
-   while (resultDivided.firstChild){ //result-areaに何かタグがある限りループ
-      resultDivided.removeChild(resultDivided.firstChild);
- }
+function removeAllChildren(element) {
+  while (element.firstChild) {
+    // 子どもの要素があるかぎり除去
+    element.removeChild(element.firstChild);
+  }
 }
 
-/**
- * 診断処理を実行して指定した要素に追加する結果を表示する
- * @param {HTMLElement} element HTMLの要素
- */
-function createAssessmentResult(element,result){
-const header = document.createElement('h3'); //h3タグを作る
-header.innerText = '診断結果';　//h3タグに'診断結果'の文字列を設定
-resultDivided.appendChild(header);//result-areamに　h3　変数を設定
+assessmentButton.onclick = () => {
+  const userName = userNameInput.value;
+  if (userName.length === 0) {
+    // 名前が空の時は処理を終了する
+    return;
+  }
 
-//result-areaにpタグで診断結果を表示
-const p = document.createElement('p');
-p.innerText = result;
-resultDivided.appendChild(p);
-}
+  // 診断結果表示エリアの作成
+  removeAllChildren(resultDivided);
+  const header = document.createElement('h3');
+  header.innerText = '診断結果';
+  resultDivided.appendChild(header);
 
-userNameInput.onkeydown = event =>{
-   if (event.key === 'Enter'){
-     assesmentButton.onclick();
-   }
-}
+  const paragraph = document.createElement('p');
+  const result = assessment(userName);
+  paragraph.innerText = result;
+  resultDivided.appendChild(paragraph);
 
+  // ツイートエリアの作成
+  removeAllChildren(tweetDivided);
+  const anchor = document.createElement('a');
+  const hrefValue =
+    'https://twitter.com/intent/tweet?button_hashtag=' +
+    encodeURIComponent('あなたのいいところ') +
+    '&ref_src=twsrc%5Etfw';
+  anchor.setAttribute('href', hrefValue);
+  anchor.className = 'twitter-hashtag-button';
+  anchor.setAttribute('data-text', result);
+  anchor.innerText = 'Tweet #あなたのいいところ';
+  tweetDivided.appendChild(anchor);
 
-assesmentButton.onclick = () => {
-   let userName = userNameInput.value;
-   if(userName.length === 0){
-      return;
-   }
+  // widgets.js の設定
+  const script = document.createElement('script');
+  script.setAttribute('src', 'https://platform.twitter.com/widgets.js');
+  tweetDivided.appendChild(script);
+};
 
-//診断結果の表示
-removeAllChildren(resultDivided); //診断結果エリアの初期化
-
-//診断を実行して表示
-const result = assessment(userName);
-
-//tweetボタンの表示
-removeAllChildren(tweetDivided);//tweetエリアの初期化
-
-//aタグを作って属性を設定
-const a = document.createElement('a');
-const href = 
-'https://twitter.com/intent/tweet?button_hashtag=' +
-encodeURIComponent('あなたのいいところ') +
-'&ref_src=twsrc%5Etfw';
-
-a.setAttribute('href',href);
-a.className = 'twitter-hashtag-button';
-a.setAttribute('date-text',result);
-a.innerText = 'Tweet #あなたのいいところ';
-
-//aタグをHTMLに追加
-tweetDivided.appendChild(a);
-
-//scriptタグを作る
-const script  = document. createElement('script');
-script.setAttribute('src','https://platform.twitter.com/widgets.js');
-tweetDivided.appendChild(script);
-
-createAssessmentResult(resultDivided,result);
-
-   //TODO ツイートエリアの作成
-}
-
-const answers = [
+const answers = [   
    '{userName}のいい所は筋肉が豊富な所です。{userName}の巧みな筋肉で、質量の重みをわからせましょう。',
    '{userName}のいい所は富士美額です。はげと煽る奴に本物のM字のタトゥーをこっそり掘りましょう。',
    '{userName}のいい所はタトゥーです。社会的に受け入れられない風潮すら、和彫の前では無力。',
@@ -94,25 +70,34 @@ const answers = [
    '{userName}のいい所はフォロワーの多さです。はい',
    '{userName}のいい所は可愛さです。萌〜'
 ];
+
 /**
  * 名前の文字列を渡すと診断結果を返す関数
- * @param{string}userName ユーザーの名前
- * @return{string} 診断結果
+ * @param {string} userName ユーザーの名前
+ * @return {string} 診断結果
  */
-function assessment(userName){
+function assessment(userName) {
+  // 全文字のコード番号を取得してそれを足し合わせる
+  let sumOfcharCode = 0;
+  for (let i = 0; i < userName.length; i++) {
+    sumOfcharCode = sumOfcharCode + userName.charCodeAt(i);
+  }
 
-   var answerNumber = 0;
+  // 文字のコード番号の合計を回答の数で割って添字の数値を求める
+  const index = sumOfcharCode % answers.length;
+  let result = answers[index];
 
-   for (let i = 0; i < userName.length; i++){
-      answerNumber = answerNumber + userName.charCodeAt(i);
-   }
-
-   //５桁の数値を回答結果の範囲(0~15)に変換
-   var index = answerNumber % answers.length;
-   //診断結果
-   var result = answers[index];
-   //正規表現
-   return result.replace(/\{userName\}/g, userName);//置換
-   //TODO　診断結果を実装する
+  result = result.replace(/{userName}/g, userName);
+  return result;
 }
 
+// テストコード
+console.assert(
+  assessment('太郎') ===
+    '太郎のいいところは決断力です。太郎がする決断にいつも助けられる人がいます。',
+  '診断結果の文言の特定の部分を名前に置き換える処理が正しくありません。'
+);
+console.assert(
+  assessment('太郎') === assessment('太郎'),
+  '入力が同じ名前なら同じ診断結果を出力する処理が正しくありません。'
+);
